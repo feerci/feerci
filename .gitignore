@@ -1,0 +1,11 @@
+VERSION
+build
+dist
+*.c
+*.egg-info
+*.py[c|d|o]
+*.swp
+*.so
+.idea
+.eggs
+feerci.egg-info

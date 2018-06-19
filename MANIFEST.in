@@ -1,0 +1,2 @@
+include feerci.pyx README.rst LICENSE
+recursive-include tests *.py
