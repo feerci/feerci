@@ -50,20 +50,19 @@ if 'test' in sys.argv and platform.python_implementation() == 'CPython':
     from Cython.Build import cythonize
     ext_modules = cythonize(Extension(
         "feerci",
-        [pyx_path],**opts,
-        define_macros=[('CYTHON_TRACE', '1')]
+        [pyx_path],
+        define_macros=[('CYTHON_TRACE', '1')],**opts
     ), compiler_directives={
         'linetrace': True,
         'binding': True
     })
 else:
-    from Cython.Build import cythonize
+    from Cython.Build import cythonize, build_ext
     ext_modules = cythonize(Extension(
         "feerci",
-        [pyx_path],**opts,
-        extra_compile_args=['-O3']
+        [pyx_path],
+        extra_compile_args=['-O3'],**opts
     ))
-
 # Dependencies
 install_requires = [
     'numpy>=1.7',
