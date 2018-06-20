@@ -36,7 +36,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     :param genuines: list of genuine scores
     :param is_sorted: whether lists are sorted or not (will sort if not)
     :param m: amount of bootstrap iterations to run
-    :param ci: confidence interval to calculate, 0 = 0%, 1= 100%.
+    :param ci: confidence interval to calculate, 0 = 0%, 1 = 100%.
     :return: EER, Bootstrapped_Eers, ci_lower_bound, ci_upper_bound
     """
 
@@ -58,7 +58,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     d_implen = implen - 1
     cdef int kg1,kg2,kp1,kp2,ip1,ip2,ig1,ig2
     cdef int imp_ll_min,gen_ll_min,imp_ll_max,gen_ll_max,centre_offset
-    cdef float frr_1,frr_2,far_1, vmid, sp1,sp2,sg1,sg2
+    cdef float fnmr_1,fnmr_2,fmr_1, vmid, sp1,sp2,sg1,sg2
 
     cdef float[:] eers = array((m,), itemsize=sizeof(float),format='f')
     cdef LinkedNode[:] imp_bs = array((implen,),itemsize=sizeof(LinkedNode),format='iii')
@@ -68,6 +68,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     # This is an O(n) operation that is amortized across the multiple runs of the bootstrap
     for i in range(min(genlen,implen)):
         gen_bs[i].next = -1
+        # "round" is a trick to reset the linked list, without having to re-initialise it.
         gen_bs[i].round = -1
         imp_bs[i].next = -1
         imp_bs[i].round = -1
@@ -162,9 +163,10 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
                 continue
             # Some overlap has been detected, so we break.
             break
+        # Either we have broken the loop, or the while case has failed.
         sg1, sg2, sp1, sp2 = genuines[ig1], genuines[ig2], impostors[ip1], impostors[ip2]
 
-        # Find FRR and FARs closest to the EER line.
+        # Find FNMR and FNMRs closest to the EER line.
         if sg1 >= sp1:
             rmin = head_gen_ll
             rmax = gen_bs[rmin].next
@@ -237,9 +239,11 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
                     rmin = rmid
                     imin = imid
             ig2_ = imid
-            frr_1 = <float>ig1_ / <float>d_genlen
-            far_1 = 1. - (<float>ip1 / <float>d_implen)
-            frr_2 = <float>ig2_ / <float>d_genlen
+
+            # Calculate the bounds of the EER box in terms of FMR/FNMR
+            fnmr_1 = <float>ig1_ / <float>d_genlen
+            fmr_1 = 1. - (<float>ip1 / <float>d_implen)
+            fnmr_2 = <float>ig2_ / <float>d_genlen
         else:
             rmin = head_imp_ll
             rmax = imp_bs[rmin].next
@@ -275,16 +279,20 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
                     rmin = rmid
                     imin = imid
             ip1_ = imid
-            frr_1 = <float>ig1 / <float>d_genlen
-            far_1 = <float>ip1_ / <float>d_implen
-            frr_2 = <float>ig2 / <float>d_genlen
 
-        if far_1 - frr_2 == 0:
-            eers[i_m] = frr_2
-        elif (far_1 - frr_1) / (far_1 - frr_2) <= 0.:
-            eers[i_m] = far_1
+            # Calculate the bounds of the EER box in terms of FMR/FNMR
+            fnmr_1 = <float>ig1 / <float>d_genlen
+            fmr_1 = <float>ip1_ / <float>d_implen
+            fnmr_2 = <float>ig2 / <float>d_genlen
+
+        # Determine whether the EER line crosses the EER bounding box vertically or horizontally
+        if fmr_1 - fnmr_2 == 0:
+            eers[i_m] = fnmr_2
+        elif (fmr_1 - fnmr_1) / (fmr_1 - fnmr_2) <= 0.:
+            eers[i_m] = fmr_1
         else:
-            eers[i_m] = frr_2
+            eers[i_m] = fnmr_2
+
     # Do a final sort of the array and determine the requested lower & upper bounds
     np.asarray(eers).sort(kind='quicksort')
     cdef int i_ci_lower = <int> m * ((1- ci)/2)
@@ -308,7 +316,7 @@ cpdef feer(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndi
     """Initialize required params"""
     cdef int implen, genlen, ig1_,ig2_,ip1_,ip2_, ig1,ip2,ig2,ip1
     cdef float sg1,sg2,sp1,sp2,pos, dep
-    cdef float far_1,frr_1,frr_2,
+    cdef float fmr_1,fmr_2,fnmr_1,fnmr_2,
     cdef float d_implen,d_genlen, imp_pos, gen_pos
     cdef int i
     """Sort both impostor and genuine lists in ascending order, if not already done"""
@@ -352,35 +360,46 @@ cpdef feer(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndi
         ip1 = bisect_right(impostors, sg1)
         ip2 = bisect_left(impostors, sg2)
 
-    frr_1 = (ig1 / d_genlen)
-    far_1 = 1. - (ip1 / d_implen)
-    frr_2 = ig2 / d_genlen
-    far_2 = 1. - (ip2 / d_implen)
+    fnmr_1 = (ig1 / d_genlen)
+    fmr_1 = 1. - (ip1 / d_implen)
+    fnmr_2 = ig2 / d_genlen
+    fmr_2 = 1. - (ip2 / d_implen)
 
     # Find intersection with EER line
-    if far_1 - frr_2 == 0:
-        return frr_2
-    elif (far_1 - frr_1) / (far_1 - frr_2) <= 0.:
-        return far_1
+    if fmr_1 - fnmr_2 == 0:
+        return fnmr_2
+    elif (fmr_1 - fnmr_1) / (fmr_1 - fnmr_2) <= 0.:
+        return fmr_1
     else:
-        return frr_2
+        return fnmr_2
+
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 cpdef bootstrap_draw_sorted(np.ndarray[np.float64_t,ndim=1] a,int samples=-1):
-    cdef int i, j, d, r, c
+    """Draws a bootstrap sample that keeps the order present in the original list. If the given list is sorted, this will return a sorted bootstrap sample.
+    :param a: numpy array of samples to draw from
+    :param samples: amount of samples to draw. Defaults to length of given list.
+    :return: Bootstrap sample as numpy array
+    
+    """
+    cdef int i, j, d, r, c, n_a
     c = 0
+    n_a = len(a)
     if samples == -1:
-        samples = len(a)
-    cdef int[:] counts = array((samples,),itemsize=sizeof(int),format='i')
-    for i in range(samples):
+        samples = n_a
+    # Initialise array that represents the index count histogram
+    cdef int[:] counts = array((n_a,),itemsize=sizeof(int),format='i')
+    for i in range(n_a):
         counts[i] = 0
     cdef np.ndarray[np.float64_t,ndim=1] out = np.zeros(samples)
-    ran = random.randint
-    cdef np.ndarray[np.long_t,ndim=1] rands = np.random.randint(0,samples,samples)
+    # Pick `sample` amount of indices
+    cdef np.ndarray[np.long_t,ndim=1] rands = np.random.randint(0,n_a,samples)
+    # Loop over drawn rands array to fill index count histogram
     for i in range(samples):
         counts[rands[i]] += 1
-    for i in range(samples):
+    # Loop over index count histogram to fill output array, keeping ordering
+    for i in range(n_a):
         d = counts[i]
         for j in range(d):
             out[c] = a[i]
