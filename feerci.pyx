@@ -14,7 +14,7 @@ bisect_right = bisect.bisect_right
 from cython.view cimport array
 import random
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 
 beta = np.random.beta
@@ -37,7 +37,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     :param is_sorted: whether lists are sorted or not (will sort if not)
     :param m: amount of bootstrap iterations to run
     :param ci: confidence interval to calculate, 0 = 0%, 1 = 100%.
-    :return: EER, Bootstrapped_Eers, ci_lower_bound, ci_upper_bound
+    :return: EER, ci_lower_bound, ci_upper_bound, Bootstrapped_Eers
     """
 
     if not is_sorted:
@@ -45,7 +45,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
         genuines.sort(axis=0)
     cdef float eer = feer(impostors,genuines,is_sorted=True)
     if m <= 0:
-        return eer,[], None, None
+        return eer, None, None,[]
 
     # Initialize used variables
     cdef int genlen,implen,d_implen,d_genlen,i,i_m
@@ -298,7 +298,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     cdef int i_ci_lower = <int> m * ((1- ci)/2)
     cdef int i_ci_upper = <int> m * ((1+ci)/2)
 
-    return eer,eers, eers[i_ci_lower],eers[i_ci_upper]
+    return eer, eers[i_ci_lower],eers[i_ci_upper], eers
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function

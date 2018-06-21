@@ -10,6 +10,9 @@ Installation
 
 What's New
 =======
+0.2.0
+--------
+- Switched output arguments around, to make more intuitive sense
 0.1.0
 --------
 - Initial release of package
@@ -21,7 +24,7 @@ License
 
 Version
 =====
-0.1.0
+0.2.0
 
 Examples
 ======
@@ -35,13 +38,13 @@ Calculating just an EER::
 
 Calculating an EER and 95% confidence interval::
 
-    eer,bootstrapped_eers,ci_lower,ci_upper = feerci.feerci(impostors,genuines,is_sorted=False)
+    eer,ci_lower,ci_upper,bootstrapped_eers = feerci.feerci(impostors,genuines,is_sorted=False)
 
 Calculating an EER and 99% confidence interval::
 
-    eer,bootstrapped_eers,ci_lower,ci_upper = feerci.feerci(impostors,genuines,is_sorted=False,ci=.99)
+    eer,ci_lower,ci_upper,bootstrapped_eers = feerci.feerci(impostors,genuines,is_sorted=False,ci=.99)
 
 Calculating an EER and 99% confidence interval on 1000 bootstrap iterations::
 
-    eer,bootstrapped_eers,ci_lower,ci_upper = feerci.feerci(impostors,genuines,is_sorted=False,m=1000,ci=.99)
+    eer,ci_lower,ci_upper,bootstrapped_eers = feerci.feerci(impostors,genuines,is_sorted=False,m=1000,ci=.99)
 
