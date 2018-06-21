@@ -36,11 +36,11 @@ Calculating just an EER::
     genuines = np.random.rand(100)
     eer,_,_,_ = feerci.feerci(impostors,genuines,is_sorted=False,m=-1)
 
-Calculating an EER and 95% confidence interval::
+Calculating an EER and 95% confidence interval (the default) on 10000 bootstrap iterations (the default)::
 
     eer,ci_lower,ci_upper,bootstrapped_eers = feerci.feerci(impostors,genuines,is_sorted=False)
 
-Calculating an EER and 99% confidence interval::
+Calculating an EER and 99% confidence interval on 10000 bootstrap iterations (the default)::
 
     eer,ci_lower,ci_upper,bootstrapped_eers = feerci.feerci(impostors,genuines,is_sorted=False,ci=.99)
 

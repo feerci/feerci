@@ -34,9 +34,9 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     for lower and upper bound.
     :param impostors: list of impostor scores 
     :param genuines: list of genuine scores
-    :param is_sorted: whether lists are sorted or not (will sort if not)
-    :param m: amount of bootstrap iterations to run
-    :param ci: confidence interval to calculate, 0 = 0%, 1 = 100%.
+    :param is_sorted: whether lists are sorted or not (will sort if not) (Default is False)
+    :param m: amount of bootstrap iterations to run (Default is 10000)
+    :param ci: confidence interval to calculate, 0 = 0%, 1 = 100%. (Default is 0.95)
     :return: EER, ci_lower_bound, ci_upper_bound, Bootstrapped_Eers
     """
 
