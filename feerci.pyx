@@ -26,7 +26,7 @@ cdef packed struct LinkedNode:
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndim=1] genuines, is_sorted=False,int m=10000, ci=0.95):
+cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndim=1] genuines, is_sorted=False,int m=10000, ci=0.95, return_threshold=False):
     """
     O(m log n) function for EER and non-parametric bootstrapped confidence bound.
     Uses beta distribution to estimate ranks at specifically chosen points by a binary search comparable to FEER's. Returns
@@ -43,7 +43,8 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     if not is_sorted:
         impostors.sort(axis=0)
         genuines.sort(axis=0)
-    cdef float eer = feer(impostors,genuines,is_sorted=True)
+    cdef float eer, threshold
+    eer, treshold = feer(impostors,genuines,is_sorted=True, return_threshold=True)
     if m <= 0:
         return eer, None, None,[]
 
@@ -298,11 +299,14 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     cdef int i_ci_lower = <int> m * ((1- ci)/2)
     cdef int i_ci_upper = <int> m * ((1+ci)/2)
 
-    return eer, eers[i_ci_lower],eers[i_ci_upper], eers
+    if return_threshold:
+        return eer, eers[i_ci_lower],eers[i_ci_upper], eers, threshold
+    else:
+        return eer, eers[i_ci_lower], eers[i_ci_upper], eers
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cpdef feer(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndim=1] genuines, is_sorted=False):
+cpdef feer(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndim=1] genuines, is_sorted=False, return_threshold=False):
     """
     O(log n) function for calculating EERs. Consists of two phases.
     1. Determine the general location of the intersection between the EER line and the ROC curve.
@@ -317,7 +321,7 @@ cpdef feer(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndi
     cdef int implen, genlen, ig1_,ig2_,ip1_,ip2_, ig1,ip2,ig2,ip1
     cdef float sg1,sg2,sp1,sp2,pos, dep
     cdef float fmr_1,fmr_2,fnmr_1,fnmr_2,
-    cdef float d_implen,d_genlen, imp_pos, gen_pos
+    cdef float d_implen,d_genlen, imp_pos, gen_pos, threshold, eer
     cdef int i
     """Sort both impostor and genuine lists in ascending order, if not already done"""
     if not is_sorted:
@@ -360,18 +364,36 @@ cpdef feer(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndi
         ip1 = bisect_right(impostors, sg1)
         ip2 = bisect_left(impostors, sg2)
 
+    if return_threshold:
+        # Determine the threshold
+        score_glb = genuines[ig1]
+        score_gub = genuines[ig2]
+
+        score_ilb = impostors[ip1]
+        score_iub = impostors[ip2]
+
+        threshold = (max(score_glb, score_ilb) + min(score_gub,score_iub)) / 2
+    else:
+        threshold = 0
+
     fnmr_1 = (ig1 / d_genlen)
     fmr_1 = 1. - (ip1 / d_implen)
     fnmr_2 = ig2 / d_genlen
     fmr_2 = 1. - (ip2 / d_implen)
 
+
     # Find intersection with EER line
     if fmr_1 - fnmr_2 == 0:
-        return fnmr_2
+        eer = fnmr_2
     elif (fmr_1 - fnmr_1) / (fmr_1 - fnmr_2) <= 0.:
-        return fmr_1
+        eer = fmr_1
     else:
-        return fnmr_2
+        eer = fnmr_2
+
+    if return_threshold:
+        return eer, threshold
+    else:
+        return eer
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
