@@ -28,7 +28,7 @@ License
 
 Version
 =====
-0.2.0
+0.3.0
 
 Examples
 ======
@@ -51,4 +51,9 @@ Calculating an EER and 99% confidence interval on 10000 bootstrap iterations (th
 Calculating an EER and 99% confidence interval on 1000 bootstrap iterations::
 
     eer,ci_lower,ci_upper,bootstrapped_eers = feerci.feerci(impostors,genuines,is_sorted=False,m=1000,ci=.99)
+
+FEERCI & FEER can both calculate the threshold @ the EER::
+
+    eer,ci_lower,ci_upper,bootstrapped_eers = feerci.feerci(impostors,genuines,is_sorted=False, return_threshold=True)
+
 
