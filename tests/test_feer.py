@@ -1,3 +1,6 @@
+import glob
+import json
+
 from feerci import feer
 from unittest import TestCase
 
@@ -20,7 +23,7 @@ class TestFeer(TestCase):
 
         assert isinstance(out, float)
 
-        out = feer(impostors, genuines, is_sorted=True, return_threshold=False)
+        out = feer(impostors, genuines, is_sorted=True)
         assert isinstance(out, float)
 
         out = feer(impostors, genuines, is_sorted=True, return_threshold=True)
@@ -54,3 +57,17 @@ class TestFeer(TestCase):
         """
         eer = feer(impostors, genuines, is_sorted=True)
         # assert eer == 0.2525252401828766
+
+    def test_feer_complex_testvector(self):
+        for f in glob.glob("tests/scores/*.json"):
+            with open(f) as fh:
+                d = json.load(fh)
+
+            eer = d["eer"]
+            impostors = np.array(d["impostors"])
+            genuines = np.array(d["genuines"])
+
+            calced_eer, _ = feer(
+                impostors, genuines, is_sorted=False, return_threshold=True
+            )
+            assert calced_eer == eer

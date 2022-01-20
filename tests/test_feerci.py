@@ -1,3 +1,6 @@
+import glob
+import json
+
 from feerci import feerci
 from unittest import TestCase
 
@@ -73,3 +76,15 @@ class TestFeerci(TestCase):
 
         out = feerci(impostors, genuines, is_sorted=True, return_threshold=True)
         assert len(out) == 5
+
+    def test_feerci_complex_testvector(self):
+        for f in glob.glob("tests/scores/*.json"):
+            with open(f) as fh:
+                d = json.load(fh)
+
+            eer = d["eer"]
+            impostors = np.array(d["impostors"])
+            genuines = np.array(d["genuines"])
+
+            calced_eer, eer_cil, eer_ciu, eers, threshold = feerci(impostors, genuines, is_sorted=False, m=1000, return_threshold=True)
+            assert calced_eer == eer

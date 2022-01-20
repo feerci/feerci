@@ -46,7 +46,21 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
     cdef float eer, threshold
     eer, treshold = feer(impostors,genuines,is_sorted=True, return_threshold=True)
     if m <= 0:
-        return eer, None, None,[]
+        if return_threshold:
+            return eer, None, None,[], threshold
+        else:
+            return eer, None, None,[]
+
+
+    if impostors[0] > genuines[-1] or impostors[-1] < genuines[0]:
+        # There is no overlap between the genuine and impostor scores.
+        # Thus - there is no point in doing empirical confidence intervals, as the result
+        # will be the `eer` itself (either 0% or 100%) in all cases.
+        # Thus, just return the simulated eer and bounds, as well as the threshold
+        if return_threshold:
+            return eer, eer, eer, [eer] * m, threshold
+        else:
+            return eer, eer, eer, [eer] * m
 
     # Initialize used variables
     cdef int genlen,implen,d_implen,d_genlen,i,i_m
@@ -137,7 +151,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
             ig1 = gen_bs[kg1].val
             ip2 = d_implen - imp_bs[kp1].val
 
-            # Check if genuine score range lies higher than impostor score range
+            # Check if genuine scores range lies higher than impostor scores range
             if genuines[ig1] > impostors[ip2]:
                 gbmax = gen_ll_max = kg1
                 ibmax = imp_ll_max = kp1
@@ -148,7 +162,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
             ig2 = gen_bs[kg2].val
             ip1 = d_implen - imp_bs[kp2].val
 
-            # Check if impostor score range lies higher than genuine score range
+            # Check if impostor scores range lies higher than genuine scores range
             if impostors[ip1] > genuines[ig2]:
                 gbmin = kg1
                 ibmin = kp1
@@ -173,7 +187,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
             rmax = gen_bs[rmin].next
             imin = gen_bs[rmin].val
 
-            # Minimize the range across which to search for the score
+            # Minimize the range across which to search for the scores
             while rmax != -1:
                 imax = gen_bs[rmax].val
                 if genuines[imin] < sp1 < genuines[imax]:
@@ -209,7 +223,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
             rmin = head_gen_ll
             rmax = gen_bs[rmin].next
             imin = gen_bs[rmin].val
-            # Minimize the range across which to search for the score
+            # Minimize the range across which to search for the scores
             while rmax != -1:
                 imax = gen_bs[rmax].val
                 if genuines[imin] < sp2 < genuines[imax]:
@@ -249,7 +263,7 @@ cpdef feerci(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,n
             rmin = head_imp_ll
             rmax = imp_bs[rmin].next
             imin = imp_bs[rmin].val
-            # Minimize the range across which to search for the score
+            # Minimize the range across which to search for the scores
             while rmax != -1:
                 imax = imp_bs[rmax].val
                 if impostors[d_implen - imin] > sg1 > impostors[d_implen - imax]:
@@ -336,9 +350,16 @@ cpdef feer(np.ndarray[np.float64_t,ndim=1] impostors,np.ndarray[np.float64_t,ndi
     pos = .5
     dep = 1.
     if impostors[implen - 1] < genuines[0]:
-        return 0.0
+        if return_threshold:
+            # No classification errors. Choose threshold in between lowest genuine score and highest imposter score
+            return 0.0, (genuines[0] + impostors[implen-1]) / 2
+        else:
+            return 0.0
     elif genuines[genlen - 1] < impostors[0]:
-        return 1.0
+        if return_threshold:
+            return 1.0, (genuines[genlen-1] + impostors[0]) / 2
+        else:
+            return 1.0
     for i in range(2*int(max(math.log2(genlen),math.log2(implen)))):
         ig1 = <int>((1. - pos) * d_genlen)
         ip2 = <int>ceil(pos * d_implen)
