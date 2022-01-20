@@ -88,3 +88,4 @@ class TestFeerci(TestCase):
 
             calced_eer, eer_cil, eer_ciu, eers, threshold = feerci(impostors, genuines, is_sorted=False, m=1000, return_threshold=True)
             assert calced_eer == eer
+            assert eer_cil <= calced_eer <= eer_ciu

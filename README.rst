@@ -14,6 +14,7 @@ What's New
 --------
 - Feerci should now support python <= 3.10, rather than python <= 3.6
 - `feer` and `feerci` now include optional flag to return score threshold@eer.
+- Fixed bug in `feerci` that caused segfault when impostor and genuine score lists did not have any overlap
 0.2.0
 --------
 - Switched output arguments around, to make more intuitive sense
