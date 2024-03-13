@@ -437,7 +437,7 @@ cpdef bootstrap_draw_sorted(np.ndarray[np.float64_t,ndim=1] a,int samples=-1):
         counts[i] = 0
     cdef np.ndarray[np.float64_t,ndim=1] out = np.zeros(samples)
     # Pick `sample` amount of indices
-    cdef np.ndarray[np.long_t,ndim=1] rands = np.random.randint(0,n_a,samples)
+    cdef np.ndarray[np.long,ndim=1] rands = np.random.randint(0,n_a,samples)
     # Loop over drawn rands array to fill index count histogram
     for i in range(samples):
         counts[rands[i]] += 1
